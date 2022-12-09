@@ -1,4 +1,3 @@
-
 fips,year,ab_res_agi_rate,ab_occ_cdc_rate,afdc_15,poverty_rate,popstatecensus,beer_pc,ln_income_pc,unemployment_rate,ln_lag_police_pc,ln_lag_prison_pc,ear_res_murd,ear_res_prop,ear_res_viol,pct_msa_ucr_hybrid,age_bm_1519,age_bm_2039,age_wm_1519,age_wm_2039,age_nm_1519,age_nm_2039,shalll,violent_rate,property_rate,murder_rate,ln_violent_rate,ln_property_rate,ln_murder_rate,vs_murder_rate,ln_vs_murder_rate,state
 1,1970,0,0,,,3444354,,,,,,0,0,0,,,,,,,,,,,,,,,12.6920983863649,-2.06419056045628,Alabama
 1,1971,0,0,,,3497076,,,,,,0,0,0,,,,,,,,,,,,,,,14.3863576225859,-1.93888981578157,Alabama
