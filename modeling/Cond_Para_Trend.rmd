@@ -1,0 +1,191 @@
+---
+title: "Conditional Parallel Trends Check"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(ggthemes)
+library(gridExtra)
+```
+
+```{r}
+# Reading in the csv of the cleaned data
+condpara<-read_csv("conditional_parallel_trend.csv")
+```
+
+```{r}
+# Looping through each year
+# and running a linear regression each year of 
+# the difference outcome variable on covariates and treatment indicator
+estimate_v<-c()
+se_v<-c()
+estimate_p<-c()
+se_p<-c()
+for(i in 1975:1984){
+  dftemp <- filter(condpara, year==i)
+  # Extracting both the coefficient and the standard error
+# From the regression summary
+  temp_v<-summary(lm(logd_violent_crime~population+`jobpop ratio`+
+               `per capita personal income`+`early_leg`, data = dftemp))
+  temp_p<-summary(lm(logd_property_crime~population+`jobpop ratio`+
+               `per capita personal income`+`early_leg`, data = dftemp))
+  
+  # storing the results in vectors
+  estimate_v<-append(estimate_v,temp_v$coefficients[5,1])
+  se_v<-append(se_v,temp_v$coefficients[5,2])
+  estimate_p<-append(estimate_p,temp_p$coefficients[5,1])
+  se_p<-append(se_p,temp_p$coefficients[5,2])
+}
+```
+
+```{r}
+# Turn the early results vectors into a dataframe for plotting
+year<-c(1975:1984)
+years_to_treatment<-year-1985
+condparaplot<-data.frame(year,years_to_treatment,estimate_v,se_v,estimate_p,se_p)
+
+condparaplot_v<-condparaplot%>%
+  subset(select = c("years_to_treatment","estimate_v"))%>%
+  rename(estimate = estimate_v)%>%
+  # further create 95% CI for the coefficients
+  mutate(upper = estimate+1.96*condparaplot$se_v)%>%
+  mutate(lower = estimate-1.96*condparaplot$se_v)%>%
+  melt(id.vars = list("years_to_treatment"))
+
+
+condparaplot_p<-condparaplot%>%
+  subset(select = c("years_to_treatment","estimate_p"))%>%
+  rename(estimate = estimate_p)%>%
+  mutate(upper = estimate+1.96*condparaplot$se_p)%>%
+  mutate(lower = estimate-1.96*condparaplot$se_p)%>%
+  melt(id.vars = list("years_to_treatment"))
+  
+
+```
+
+
+```{r}
+# Defining a function to plot the conditional parallel trends plot
+# Using the previously defined dataframes
+condpara_ggplot<-function(df,var,year){
+  ggplot(data=df)+
+  geom_line(aes(x=years_to_treatment,y=value,col = variable))+
+  geom_point(aes(x=years_to_treatment,y=value,col = variable))+
+  theme_minimal()+scale_color_manual(values = c("black", "#FF0000","#FF0000"))+
+  ylab(paste(var," Treated - ",var," Control",sep=""))+ 
+  xlab(paste("Years to Treatment (",year," cutoff)",sep=""))+
+  ylim(-0.4,0.4)+
+  ggtitle("Conditional Parallel Trend Pretreatment")
+  
+}
+```
+
+```{r}
+p3<-condpara_ggplot(condparaplot_v,"Violent Crime",1985)
+p4<-condpara_ggplot(condparaplot_p,"Property Crime",1985)
+
+ grid.arrange(p3, p4, ncol=2)
+```
+
+```{r}
+top_quartile_states = c(
+    'NY',
+    'MD',
+    'CA',
+    'NJ',
+    'MA',
+    'WA',
+    'FL',
+    'CT',
+    'DE',
+    'VA',
+    'IL',
+    'HI',
+    'NV')
+
+
+bottom_quartile_states = c(
+    'OK',
+    'KY',
+    'AR',
+    'WV',
+    'AL',
+    'NE',
+    'SD',
+    'LA',
+    'MN',
+    'ND',
+    'MS',
+    'ID',
+    'UT')
+```
+
+
+```{r}
+condpara$highabort<-case_when(condpara$state_abb %in% top_quartile_states ~TRUE,
+                              condpara$state_abb %in% bottom_quartile_states ~FALSE)
+
+conpara_alt<-filter(condpara,is.na(condpara$highabort)==0)
+```
+
+
+```{r}
+estimate_v2<-c()
+se_v2<-c()
+estimate_p2<-c()
+se_p2<-c()
+for(i in 1977:1987){
+  dftemp <- filter(conpara_alt, year==i)
+  temp_v<-summary(lm(logd_violent_crime~population+`jobpop ratio`+
+               `per capita personal income`+`early_leg`, data = dftemp))
+  temp_p<-summary(lm(logd_property_crime~population+`jobpop ratio`+
+               `per capita personal income`+`early_leg`, data = dftemp))
+  
+  estimate_v2<-append(estimate_v2,temp_v$coefficients[5,1])
+  se_v2<-append(se_v2,temp_v$coefficients[5,2])
+  estimate_p2<-append(estimate_p2,temp_p$coefficients[5,1])
+  se_p2<-append(se_p2,temp_p$coefficients[5,2])
+}
+```
+
+
+```{r}
+year2<-c(1977:1987)
+years_to_treatment2<-year2-1988
+condparaplot2<-data.frame(year2,years_to_treatment2,estimate_v2,se_v2,estimate_p2,se_p2)
+
+condparaplot_v2<-condparaplot2%>%
+  subset(select = c("years_to_treatment2","estimate_v2"))%>%
+  rename(years_to_treatment = years_to_treatment2)%>%
+  rename(estimate = estimate_v2)%>%
+  mutate(upper = estimate+1.96*condparaplot2$se_v2)%>%
+  mutate(lower = estimate-1.96*condparaplot2$se_v2)%>%
+  melt(id.vars = list("years_to_treatment"))
+
+
+condparaplot_p2<-condparaplot2%>%
+  subset(select = c("years_to_treatment2","estimate_p2"))%>%
+  rename(estimate = estimate_p2)%>%
+  rename(years_to_treatment = years_to_treatment2)%>%
+  mutate(upper = estimate+1.96*condparaplot2$se_p2)%>%
+  mutate(lower = estimate-1.96*condparaplot2$se_p2)%>%
+  melt(id.vars = list("years_to_treatment"))
+  
+
+```
+
+
+```{r}
+p1<-condpara_ggplot(condparaplot_v2,"Violent Crime",1988)
+p2<-condpara_ggplot(condparaplot_p2,"Property Crime",1988)
+
+ grid.arrange(p1, p2, ncol=2)
+```
